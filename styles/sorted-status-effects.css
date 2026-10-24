@@ -1,4 +1,7 @@
-#token-hud.sorted-status-effects .status-effects {
+/* AI-CODED: This file was modified by an AI (Claude Opus 5.5, Anthropic) for Foundry v13/v14 compatibility.
+   These changes were not written or reviewed by the original author. See the notice in README.md. */
+/* Only lay out the palette while it is open: in v13+ an inactive palette is hidden by core styles that this rule would otherwise override. */
+#token-hud.sorted-status-effects .status-effects.active {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;

@@ -1,6 +1,27 @@
 # Sorted Status Effects
 
-![Foundry v12](https://img.shields.io/badge/foundry-v12-green)
+> [!WARNING]
+> ## 🤖 AI-coded fork: Foundry v13 / v14 compatibility patch
+>
+> **This is an unofficial fork of [ThreeHats/sorted-status-effects](https://github.com/ThreeHats/sorted-status-effects). Every change in this fork was written by an AI, Claude (Opus 5.5, made by Anthropic), at the fork owner's request.**
+>
+> - The changes were **not written or reviewed by the original author** (ThreeHats), and they were not written by a human programmer.
+> - They were **tested only in a headless browser against a mocked Foundry v14 Token HUD**, not in a live Foundry game, and were not tested on Foundry v12 or earlier.
+> - Please **do not report problems with this fork to the original author.** Open an issue on this fork instead.
+>
+> The AI-written changes are in the commit marked "AI-generated" in this repository's history. Everything else is the original 1.6.0 code.
+>
+> **What the AI changed**
+> - Foundry v13+ renders the Token HUD with ApplicationV2, so the module's libWrapper hook on `TokenHUD.prototype._render` no longer exists. The HUD is now altered from the `renderTokenHUD` hook instead, and **libWrapper is no longer required**.
+> - Render hooks now pass an `HTMLElement` rather than jQuery; the HUD and keybinding code handle both.
+> - Uses the namespaced `foundry.utils.mergeObject`, `foundry.appv1.api.FormApplication` / `Dialog`, `foundry.applications.apps.FilePicker.implementation`, `foundry.utils.saveDataToFile` / `readTextFromFile` (falling back to the old globals).
+> - The palette `display: flex` rule now applies only while the palette is open, so a closed palette stays hidden in v13+.
+> - Effect names for search and sidebar tooltips are read from v13+ markup (`data-tooltip-text`), with a fallback to `CONFIG.statusEffects`.
+> - Status effects that are hidden from a particular HUD (e.g. by `CONFIG.statusEffects[].hud.actorTypes`) keep their sort order and tags instead of being deleted.
+> - Sort data is saved only by a GM and only when it changes, so players opening a Token HUD no longer hit permission errors.
+> - The icon picker in "Configure Tags" now opens a file picker (it previously only listed a folder), plus small null-safety fixes in the T/Q keybindings.
+
+![Foundry v13 | v14](https://img.shields.io/badge/foundry-v13%20%7C%20v14-orange) ![AI-coded fork](https://img.shields.io/badge/AI--coded%20fork-Claude-red)
 
 A Foundry VTT module that enhances the Token HUD by adding the ability to sort and tag status effects, making them more organized and easier to filter.
 
@@ -32,12 +53,14 @@ A Foundry VTT module that enhances the Token HUD by adding the ability to sort a
 
 ## Installation
 
+> **Note:** The manifest URL below installs the **original** module (v12), not this AI-patched fork. This fork has no published release; to use it, copy this repository's files into `Data/modules/sorted-status-effects`.
+
 1. Inside Foundry VTT, select the Game Modules tab in the Configuration and Setup menu
 2. Click the Install Module button and enter the following URL: https://github.com/ThreeHats/sorted-status-effects/releases/latest/download/module.json
 3. Click Install and wait for installation to complete
 
 ## Required Modules
-- [libWrapper](https://foundryvtt.com/packages/lib-wrapper)
+- None in this fork. (The original required [libWrapper](https://foundryvtt.com/packages/lib-wrapper); the AI-patched version no longer uses it.)
 
 ## Recommended Modules
 - [Condition Lab & Triggler](https://foundryvtt.com/packages/condition-lab-triggler)
@@ -77,12 +100,14 @@ A Foundry VTT module that enhances the Token HUD by adding the ability to sort a
 - Status effects without any tags are shown no matter what
 
 ## Compatibility
-- Tested with Foundry VTT v12
+- This fork: targets Foundry VTT v13 and v14 (AI-patched; tested only against a mocked v14 HUD, see the notice at the top)
+- Original 1.6.0: tested with Foundry VTT v12
 - Compatible with Token HUD Scale and Monk's Little Details modules
 
 ## Support
 
-For bug reports, please open an issue on the [GitHub repository](https://github.com/ThreeHats/sorted-status-effects).
+For problems with this AI-patched fork, open an issue on this fork, not on the original repository.
+For the original module, see the [original GitHub repository](https://github.com/ThreeHats/sorted-status-effects).
 Join the [discord](https://discord.gg/HUzEnZy8uJ) for extra support and discussions.
 
 ## License

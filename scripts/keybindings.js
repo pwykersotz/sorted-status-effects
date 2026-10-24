@@ -1,3 +1,5 @@
+// AI-CODED: This file was modified by an AI (Claude Opus 5.5, Anthropic) for Foundry v13/v14 compatibility.
+// These changes were not written or reviewed by the original author. See the notice in README.md.
 /**
  * The currently hovered token HUD entity and status icon element.
  */
@@ -5,6 +7,16 @@ let activeEffectHud, activeEffectHudIcon, targetStatusId;
 let statusEffectsTags = [];
 let _dragIcon, _onMouseMove;
 let isTagDrag = false;
+
+// Foundry v13+ moved these classes into namespaces; fall back to the old globals on older cores.
+const DialogV1 = foundry.appv1?.api?.Dialog ?? globalThis.Dialog;
+const getFilePicker = () => foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+
+/** Status id of a hovered status icon (v12 and v13+ markup). */
+function statusIdOf(icon) {
+    return icon?.dataset?.statusId || icon?.dataset?.effectId
+        || icon?.children?.[0]?.dataset?.statusId || icon?.children?.[0]?.dataset?.effectId;
+}
 
 /**
  * Applies keybinds to the given entity to change status counters. Which 
@@ -14,8 +26,11 @@ let isTagDrag = false;
  * @param {jQuery} html The HTML code of the element.
  */
 export function registerKeybinds(entity, html) {
-    let effectHud = html[0].querySelector(".status-effects");
-    if (!effectHud) return;
+    // v13+ passes an HTMLElement to render hooks; older versions pass jQuery.
+    const root = html instanceof HTMLElement ? html : html?.[0];
+    let effectHud = root?.querySelector(".status-effects");
+    if (!effectHud || effectHud.dataset.sseKeybinds === "1") return;
+    effectHud.dataset.sseKeybinds = "1";
 
     on(effectHud, "mouseover", ".effect-control", onEffectMouseOver.bind(entity));
     on(effectHud, "mouseout", ".effect-control", onEffectMouseOut.bind(entity));
@@ -50,17 +65,24 @@ function onEffectMouseOut() {
  */
 export function onEffectKeyDown(event) {
     let debug = game.settings.get('sorted-status-effects', 'debug');
+    // Clear any drag icon left behind by a missed key release
+    if (_dragIcon) {
+        document.removeEventListener('mousemove', _onMouseMove);
+        _dragIcon.remove();
+        _dragIcon = null;
+    }
+    if (!activeEffectHudIcon) return;
     // Check if we're dragging a tag by looking for data-is-tag on the img element
-    const imgElement = activeEffectHudIcon?.querySelector('img');
+    const imgElement = activeEffectHudIcon.querySelector('img');
     isTagDrag = imgElement ? imgElement.dataset.isTag === "true" : false;
 
     // For tags, we don't need to check activeEffectHud visibility
-    if (!isTagDrag && (!activeEffectHud || !activeEffectHud.object.visible)) return;
+    if (!isTagDrag && (!activeEffectHud || !activeEffectHud.object?.visible)) return;
 
     event.currentTarget = activeEffectHudIcon;
-    const statusId = isTagDrag ? 
-        activeEffectHudIcon.dataset.tagId : 
-        (activeEffectHudIcon.dataset.statusId || activeEffectHudIcon.children[0]?.dataset.statusId);
+    const statusId = isTagDrag ?
+        activeEffectHudIcon.dataset.tagId :
+        statusIdOf(activeEffectHudIcon);
 
     if (debug) console.log("SSE| " + (isTagDrag ? "Tag: " : "Status: ") + statusId);
 
@@ -68,11 +90,11 @@ export function onEffectKeyDown(event) {
 
     // check for illandril-token-hud-scale and monks-little-details compatibility
     let size = 24;
-    if (game.modules.get('illandril-token-hud-scale') !== undefined && 
-    game.modules.get('illandril-token-hud-scale').active && 
-    !(game.modules.get('monks-little-details') !== undefined && 
-    game.modules.get('monks-little-details').active && 
-    game.settings.get('monks-little-details', 'alter-hud'))) {
+    let monksAlterHud = false;
+    try {
+        monksAlterHud = !!game.modules.get('monks-little-details')?.active && !!game.settings.get('monks-little-details', 'alter-hud');
+    } catch (e) { /* setting not registered */ }
+    if (game.modules.get('illandril-token-hud-scale')?.active && !monksAlterHud) {
         size = 36;
     }
 
@@ -82,7 +104,7 @@ export function onEffectKeyDown(event) {
         const tagIcons = game.settings.get('sorted-status-effects', 'tagIcons') || {};
         iconSrc = tagIcons[statusId] || 'icons/svg/d20.svg';
     } else {
-        iconSrc = event.currentTarget.src;
+        iconSrc = event.currentTarget.src || event.currentTarget.querySelector('img')?.src;
     }
 
     let icon = document.createElement('img');
@@ -114,28 +136,31 @@ export function onEffectKeyDown(event) {
  *  this handler returns immediately. Otherwise, we change the order of the sorted effects if not the same target.
  * @param {jQuery.Event} event The key down event triggered by jQuery.
  */
-export function onEffectKeyUp(event) {
+export async function onEffectKeyUp(event) {
     // Cleanup: remove the icon and event listeners
     document.removeEventListener('mousemove', _onMouseMove);
     if (!_dragIcon) return;
-    document.body.removeChild(_dragIcon);
+    _dragIcon.remove();
     _dragIcon = null;
 
     let debug = game.settings.get('sorted-status-effects', 'debug');
 
+    // Released away from any icon: nothing to drop onto
+    if (!activeEffectHudIcon) return;
+
     // Get either status ID or tag ID of target
     const imgElement = activeEffectHudIcon.querySelector('img');
     const isTargetTag = imgElement ? imgElement.dataset.isTag === "true" : false;
-    
+
     // Don't allow mixing tags and effects
     if (isTagDrag !== isTargetTag) return;
 
-    if ((!activeEffectHud || !activeEffectHud.object.visible) && !isTagDrag) return;
+    if ((!activeEffectHud || !activeEffectHud.object?.visible) && !isTagDrag) return;
 
     event.currentTarget = activeEffectHudIcon;
-    const statusId = isTagDrag ? 
-        activeEffectHudIcon.dataset.tagId : 
-        (activeEffectHudIcon.dataset.statusId || activeEffectHudIcon.children[0]?.dataset.statusId);
+    const statusId = isTagDrag ?
+        activeEffectHudIcon.dataset.tagId :
+        statusIdOf(activeEffectHudIcon);
 
     if (debug) console.log("SSE| " + (isTagDrag ? "Tag: " : "Status: ") + statusId);
 
@@ -151,7 +176,7 @@ export function onEffectKeyUp(event) {
             // Remove tag from old position and insert at new position
             tags.splice(fromIndex, 1);
             tags.splice(toIndex, 0, targetStatusId);
-            game.settings.set('sorted-status-effects', 'statusEffectsTags', tags);
+            await game.settings.set('sorted-status-effects', 'statusEffectsTags', tags);
         }
     } else {
 
@@ -184,12 +209,12 @@ export function onEffectKeyUp(event) {
             sortedStatus[targetStatusId].order = statusOrder;
         }
 
-        game.settings.set('sorted-status-effects', 'sortedStatusEffects', sortedStatus);
+        await game.settings.set('sorted-status-effects', 'sortedStatusEffects', sortedStatus);
 
         if (debug) console.log("SSE| Postsorted:", sortedStatus);
     }
     // Force a refresh of the status icons
-    activeEffectHud.render();
+    (activeEffectHud ?? canvas.hud?.token)?.render();
 }
 
 /**
@@ -199,14 +224,16 @@ export function onEffectKeyUp(event) {
  */
 export function onTagKeyDown(event) {
     let debug = game.settings.get('sorted-status-effects', 'debug');
-    if (!activeEffectHud || !activeEffectHud.object.visible) return;
+    if (!activeEffectHud || !activeEffectHud.object?.visible || !activeEffectHudIcon) return;
 
     event.currentTarget = activeEffectHudIcon;
-    const { statusId } = event.currentTarget.dataset;
+    const statusId = statusIdOf(activeEffectHudIcon);
 
     if (debug) console.log("SSE| " + statusId);
 
-    let sortedStatus = game.settings.get('sorted-status-effects', 'sortedStatusEffects');
+    // Tag icons and anything that isn't a status effect can't be tagged
+    let sortedStatus = game.settings.get('sorted-status-effects', 'sortedStatusEffects') || {};
+    if (!statusId || !sortedStatus[statusId]) return;
     let tags = sortedStatus[statusId].tags || [];
     let tagIcons = game.settings.get('sorted-status-effects', 'tagIcons') || {};
 
@@ -241,37 +268,37 @@ export function onTagKeyDown(event) {
     </div>`;
 
     let effectHud = activeEffectHud;
-    let d = new Dialog({
+    let d = new DialogV1({
         title: "Tagging Menu",
         content: content,
         buttons: {
             save: {
                 label: "Save Tags",
-                callback: (html) => {
-                    let newTag = html.find('#new-status-tag').val();
-                    let newIcon = html.find('#new-status-icon').val();
+                callback: async (html) => {
+                    let newTag = html.find('#new-status-tag').val()?.trim();
+                    let newIcon = html.find('#new-status-icon').val()?.trim();
                     if (!Array.isArray(statusEffectsTags)) {
                         statusEffectsTags = [];
                     }
                     if (newTag && !statusEffectsTags.includes(newTag)) {
                         statusEffectsTags.push(newTag);
-                        game.settings.set('sorted-status-effects', 'statusEffectsTags', statusEffectsTags);
+                        await game.settings.set('sorted-status-effects', 'statusEffectsTags', statusEffectsTags);
                         
                         // Save the icon for the new tag
                         if (newIcon) {
                             tagIcons[newTag] = newIcon;
-                            game.settings.set('sorted-status-effects', 'tagIcons', tagIcons);
+                            await game.settings.set('sorted-status-effects', 'tagIcons', tagIcons);
                         }
                     }
                     let selectedTags = [];
                     html.find('input[type="checkbox"]:checked').each(function() {
-                        selectedTags.push($(this).data('tag'));
+                        selectedTags.push(this.dataset.tag);
                     });
                     sortedStatus[statusId].tags = selectedTags;
-                    if (newTag) selectedTags.push(newTag);
-                    game.settings.set('sorted-status-effects', 'sortedStatusEffects', sortedStatus);
+                    if (newTag && !selectedTags.includes(newTag)) selectedTags.push(newTag);
+                    await game.settings.set('sorted-status-effects', 'sortedStatusEffects', sortedStatus);
                     // Force a refresh of the status icons
-                    effectHud.render();
+                    (effectHud ?? canvas.hud?.token)?.render();
                 }
             },
             close: {
@@ -285,7 +312,8 @@ export function onTagKeyDown(event) {
             picker.click((event) => {
                 const button = event.currentTarget;
                 const input = html.find(`#${button.dataset.target}`);
-                const fp = new FilePicker({
+                const FilePickerClass = getFilePicker();
+                const fp = new FilePickerClass({
                     type: button.dataset.type,
                     current: input.val(),
                     callback: path => {

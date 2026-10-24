@@ -1,6 +1,12 @@
-export class TagConfigurationDialog extends FormApplication {
+// AI-CODED: This file was modified by an AI (Claude Opus 5.5, Anthropic) for Foundry v13/v14 compatibility.
+// These changes were not written or reviewed by the original author. See the notice in README.md.
+// Foundry v13+ moved the V1 application classes into namespaces; fall back to the old globals on older cores.
+const FormApplicationV1 = foundry.appv1?.api?.FormApplication ?? globalThis.FormApplication;
+const getFilePicker = () => foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+
+export class TagConfigurationDialog extends FormApplicationV1 {
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'tag-configuration',
             title: 'Tag Configuration',
             template: 'modules/sorted-status-effects/templates/tag-config.html',
@@ -38,12 +44,16 @@ export class TagConfigurationDialog extends FormApplication {
         html.find('input[name^="tagIcon"]').on('change', this._onIconPathChange.bind(this));
 
         // Initialize FilePicker with a single delegated handler
-        html.find('#tag-list').on('click', 'button.file-picker', async (event) => {
-            const fp = await FilePicker.browse('data', '', {type: 'imagevideo'});
-            if (fp.path) {
-                const input = $(event.currentTarget).siblings('input[name^="tagIcon"]');
-                input.val(fp.path).trigger('change');
-            }
+        // (FilePicker.browse() only lists a folder; open an actual picker and fill the field with the choice.)
+        html.find('#tag-list').on('click', 'button.file-picker', (event) => {
+            const input = $(event.currentTarget).siblings('input[name^="tagIcon"]');
+            const FilePickerClass = getFilePicker();
+            const fp = new FilePickerClass({
+                type: event.currentTarget.dataset.type || 'imagevideo',
+                current: input.val(),
+                callback: path => input.val(path).trigger('change')
+            });
+            fp.browse();
         });
     }
 

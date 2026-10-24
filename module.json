@@ -1,11 +1,11 @@
 {
   "id": "sorted-status-effects",
   "title": "Sorted Status Effects",
-  "description": "Adds the ability to sort and tag status effects in the HUD and filter them based off those tags.",
+  "description": "Adds the ability to sort and tag status effects in the HUD and filter them based off those tags. Unofficial AI-coded fork (changes written by Claude, Anthropic's AI) adding Foundry v13/v14 compatibility; not made or reviewed by the original author.",
   "version": "#{VERSION}#",
   "compatibility": {
-    "minimum": 11,
-    "verified": 12
+    "minimum": "13",
+    "verified": "14"
   },
   "authors": [
     {
@@ -16,13 +16,7 @@
   ],
   "relationships": {
     "systems": [],
-    "requires": [
-      {
-        "id": "lib-wrapper",
-        "name": "libWrapper",
-        "type": "module"
-      }
-    ]
+    "requires": []
   },
   "esmodules": [
     "sorted-status-effects.js",

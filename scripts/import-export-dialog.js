@@ -1,7 +1,15 @@
+// AI-CODED: This file was modified by an AI (Claude Opus 5.5, Anthropic) for Foundry v13/v14 compatibility.
+// These changes were not written or reviewed by the original author. See the notice in README.md.
 // filepath: c:\Users\Noah\Documents\GitHub\sorted-status-effects\scripts\import-export-dialog.js
-export class ImportExportDialog extends FormApplication {
+// Foundry v13+ moved these into namespaces; fall back to the old globals on older cores.
+const FormApplicationV1 = foundry.appv1?.api?.FormApplication ?? globalThis.FormApplication;
+const DialogV1 = foundry.appv1?.api?.Dialog ?? globalThis.Dialog;
+const saveDataToFileFn = foundry.utils.saveDataToFile ?? globalThis.saveDataToFile;
+const readTextFromFileFn = foundry.utils.readTextFromFile ?? globalThis.readTextFromFile;
+
+export class ImportExportDialog extends FormApplicationV1 {
     static get defaultOptions() {
-        return mergeObject(super.defaultOptions, {
+        return foundry.utils.mergeObject(super.defaultOptions, {
             id: 'import-export-dialog',
             title: 'Import/Export Settings',
             template: 'modules/sorted-status-effects/templates/import-export.html',
@@ -61,7 +69,7 @@ export class ImportExportDialog extends FormApplication {
         const jsonData = JSON.stringify(settings, null, 2); // Pretty print with 2 spaces
         
         // Use Foundry's saveDataToFile utility function
-        saveDataToFile(jsonData, "text/json", filename);
+        saveDataToFileFn(jsonData, "text/json", filename);
         ui.notifications.info(`Sorted Status Effects | Settings exported successfully to ${filename}`);
     }
 
@@ -89,13 +97,13 @@ export class ImportExportDialog extends FormApplication {
         
         try {
             // Use Foundry's readTextFromFile utility
-            const jsonData = await readTextFromFile(file);
+            const jsonData = await readTextFromFileFn(file);
             
             // Parse the JSON data
             const settings = JSON.parse(jsonData);
             
             // Confirm with user
-            const confirmed = await Dialog.confirm({
+            const confirmed = await DialogV1.confirm({
                 title: 'Confirm Import',
                 content: '<p>This will overwrite your current settings. Are you sure you want to proceed?</p>',
                 yes: () => true,
